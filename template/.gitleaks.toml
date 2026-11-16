@@ -1,0 +1,18 @@
+# gitleaks config. The default ruleset applies as-is.
+[extend]
+useDefault = true
+
+# The one allowlist, and it names each exception by its exact line. Nothing
+# real is exempt: add an entry only for a line the default rules misread as a
+# credential, with a comment saying what the line is and why a real secret on
+# it would still not match.
+#
+# Written in the singular [allowlist] form on purpose: older gitleaks
+# releases ignore the newer [[allowlists]] table.
+[allowlist]
+description = "lines the default rules misread as secrets"
+regexTarget = "line"
+regexes = [
+  # Example: a test fixture's deliberately fake token.
+  # '''"token": "ghs_FAKEtokenNOTREALvalue0000000000000000"''',
+]

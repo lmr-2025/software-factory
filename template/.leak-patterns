@@ -1,0 +1,12 @@
+# Generic shapes that never belong in a shared repository. One extended regex
+# per line, matched case-insensitively. Names of clients, partners and people
+# go in .leak-denylist, which is gitignored.
+
+# Links into private chat, session or project pages
+claude\.ai/(code/)?(session|project|artifact)
+chatgpt\.com/(c|share)/
+# Personal home directories
+/Users/[a-z]
+/home/[a-z]+/
+# Private keys
+-----BEGIN [A-Z ]*PRIVATE KEY-----

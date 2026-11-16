@@ -1,0 +1,6 @@
+# The gate's venv and logs, and the review JSON
+.gate/
+# The ship marker /ship touches before `gh pr create`
+.claude-ship-run
+# Your local list of names that must never appear in the tree
+.leak-denylist

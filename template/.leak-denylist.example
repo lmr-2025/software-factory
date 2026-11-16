@@ -1,0 +1,12 @@
+# Copy to .leak-denylist (gitignored) and fill in. One regex per line,
+# case-insensitive. Never commit the filled-in file.
+#
+# Clients and partners
+# northwind
+# People
+# jane[ .]doe
+# Private repositories and internal hostnames
+# my-private-repo
+# internal\.example\.com
+# Ticket ids from your tracker
+# ABC-[0-9]+
