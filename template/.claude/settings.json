@@ -1,0 +1,57 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre-bash-worktree-guard.sh\"",
+            "statusMessage": "shared-checkout guard"
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre-bash-pr-gate.sh\"",
+            "statusMessage": "PR draft and ship gate"
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre-bash-protected-data-guard.sh\"",
+            "statusMessage": "protected-data guard"
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__.*Linear__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre-tool-tracker-write-guard.sh\"",
+            "statusMessage": "tracker write guard"
+          }
+        ]
+      },
+      {
+        "matcher": "Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre-tool-model-guard.sh\"",
+            "statusMessage": "subagent model guard"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/stop-ship-choreography.sh\"",
+            "statusMessage": "advisory-review check"
+          }
+        ]
+      }
+    ]
+  }
+}

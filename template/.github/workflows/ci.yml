@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  # A DRAFT gets no CI (the `if:` on the gate job below): a draft is a
+  # session's terminal state, not a review request, and its evidence is the
+  # local gate (`scripts/gate.sh`). `ready_for_review` is listed because the
+  # flip is the first event that runs CI. `converted_to_draft` too: re-drafting
+  # cancels the run in the same concurrency group instead of letting it finish
+  # for nobody.
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Least privilege: the workflow reads the code and nothing else.
+permissions:
+  contents: read
+
+jobs:
+  # The same steps as scripts/gate.sh, in the same order. Every action is
+  # pinned to a full commit SHA with its tag in a comment: a tag can be moved,
+  # a commit cannot. Dependabot (.github/dependabot.yml) moves the pins.
+  gate:
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Install tooling
+        run: python -m pip install --upgrade pip pytest ruff
+      - name: Lint
+        run: ruff check .
+      - name: Tests
+        run: pytest -q
+      - name: Leak check
+        run: scripts/leak_check.sh
+
+  # The secret scan runs on drafts too, the one job that does: it costs a
+  # minute, and a pushed credential must not wait for the ready flip. It is
+  # the gitleaks CLI fetched by version and checksum (nothing floats), so it
+  # needs no license secret and runs the same on forks and Dependabot PRs.
+  secret-scan:
+    runs-on: ubuntu-latest
+    env:
+      # Move these on purpose, with the checksum from the release's
+      # `gitleaks_<version>_checksums.txt`.
+      GITLEAKS_VERSION: "8.24.3"
+      GITLEAKS_SHA256: "9991e0b2903da4c8f6122b5c3186448b927a5da4deef1fe45271c3793f4ee29c"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Install gitleaks by version and checksum
+        run: |
+          set -euo pipefail
+          curl -sSfL --retry 3 -o gitleaks.tar.gz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  gitleaks.tar.gz" | sha256sum -c -
+          mkdir -p "$HOME/.local/bin" && tar -xzf gitleaks.tar.gz -C "$HOME/.local/bin" gitleaks && rm gitleaks.tar.gz
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Scan the commits this event brought
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          gitleaks version
+          if [ -n "$BASE_REF" ]; then
+            git fetch -q origin "$BASE_REF"
+            base="origin/$BASE_REF"
+          else
+            base="$BEFORE"
+          fi
+          if [ -n "$base" ] && git cat-file -e "$base^{commit}" 2>/dev/null; then
+            gitleaks git --no-banner --redact --config .gitleaks.toml --log-opts="$base..HEAD" .
+          else
+            gitleaks dir --no-banner --redact --config .gitleaks.toml .
+          fi

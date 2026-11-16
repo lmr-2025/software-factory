@@ -1,0 +1,14 @@
+# Every pin in this repository is exact: an action by commit, a package by
+# hash. An exact pin that nothing moves is a vulnerability with a date on it.
+# This file is what moves them: one grouped PR a week per ecosystem, read and
+# merged like any other.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
+    groups: { actions: { patterns: ["*"] } }
+  - package-ecosystem: pip
+    directory: /
+    schedule: { interval: weekly }
+    groups: { python: { patterns: ["*"] } }
